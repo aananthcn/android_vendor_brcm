@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.brcm.mapsshim">
+
+    <!-- Required for Android 11+ package visibility: allows the shim to see
+         and start activities in app.organicmaps.web regardless of where it is
+         installed (/system/app or /data/app). -->
+    <queries>
+        <package android:name="app.organicmaps.web" />
+    </queries>
+
+    <application
+        android:label="Maps"
+        android:hasCode="true">
+
+        <!--
+            Registers android.intent.category.APP_MAPS at default priority (0),
+            beating car-maps-placeholder (priority -1000).  The car launcher
+            resolves ACTION_MAIN + CATEGORY_APP_MAPS to this activity, which
+            immediately forwards to Organic Maps and finishes.
+        -->
+        <activity
+            android:name=".MapsShimActivity"
+            android:theme="@android:style/Theme.NoDisplay"
+            android:exported="true"
+            android:excludeFromRecents="true">
+            <meta-data android:name="distractionOptimized" android:value="true"/>
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.APP_MAPS"/>
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

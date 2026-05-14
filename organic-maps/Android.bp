@@ -1,0 +1,72 @@
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+// BUILD_PREBUILT (Android.mk) was replaced by android_app_import because the
+// Make path runs compact-dex rewriting on the APK's dex files even when
+// LOCAL_NO_ZIPALIGN := true.  That rewrite strips the APK Signature Scheme v2
+// block, causing PackageManager to reject the package at install time.
+//
+// preprocessed: true tells Soong to copy the APK byte-for-byte with no
+// zipalign, no dex rewriting, and no re-signing — the v2 block is preserved.
+//
+// NOTE: OrganicMaps.apk must be fetched before building:
+//   vendor/brcm/organic-maps/fetch_apk.sh
+android_app_import {
+    name: "OrganicMaps",
+
+    apk: "OrganicMaps.apk",
+
+    // Keep the developer's original signature.  The app holds no
+    // signature-level permissions and does not need the platform key.
+    presigned: true,
+
+    // Do not rewrite, zipalign, or re-sign.  The APK already carries an APK
+    // Signature Scheme v2 block that must survive intact.
+    preprocessed: true,
+
+    // Organic Maps stores its JNI libraries compressed inside the APK to
+    // reduce download size.  check_prebuilt_presigned_apk.py rejects this for
+    // preprocessed system apps (it prefers uncompressed libs for direct
+    // mmap).  The flag below tells the script we know about this issue and
+    // accept it: Android will extract the .so files to /data on first launch,
+    // which is normal behaviour for third-party apps.
+    skip_preprocessed_apk_checks: true,
+
+    dex_preopt: {
+        enabled: false,
+    },
+}
+
+// Pre-extracted native library.
+//
+// The APK stores liborganicmaps.so with DEFLATE compression to reduce download
+// size.  Android's linker cannot mmap a compressed ZIP entry, and for a system
+// app legacyNativeLibraryDir points into the read-only system partition so
+// runtime extraction via installd never runs.  Without this module the app
+// crashes at startup with UnsatisfiedLinkError: liborganicmaps.so not found.
+//
+// cc_prebuilt_library_shared installs to /system/lib64/ which is the third
+// entry in the nativeloader search path for system apps:
+//   library_path = /system/app/OrganicMaps/lib/arm64 :
+//                  /system/app/OrganicMaps/OrganicMaps.apk!/lib/arm64-v8a :
+//                  /system/lib64          ← found here
+//
+// fetch_apk.sh extracts the .so from the APK; this module installs it.
+// PRODUCT_PACKAGES += liborganicmaps  is required in device.mk.
+cc_prebuilt_library_shared {
+    name: "liborganicmaps",
+
+    arch: {
+        arm64: {
+            srcs: ["lib/arm64/liborganicmaps.so"],
+        },
+    },
+
+    // Do not strip or validate ELF dependencies — this is an app-private
+    // library built outside the AOSP tree.
+    strip: {
+        none: true,
+    },
+    check_elf_files: false,
+}

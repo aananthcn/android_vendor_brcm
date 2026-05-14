@@ -1,0 +1,20 @@
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+android_app {
+    name: "OrganicMapsShim",
+
+    srcs: ["src/**/*.java"],
+
+    manifest: "AndroidManifest.xml",
+
+    sdk_version: "current",
+
+    // Platform cert so the car launcher can start this activity.
+    certificate: "platform",
+
+    // System app — must be visible to CarLauncher (system server context).
+    // No vendor: true.
+    privileged: false,
+}
